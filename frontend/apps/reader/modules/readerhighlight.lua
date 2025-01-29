@@ -580,6 +580,16 @@ function ReaderHighlight:addToMainMenu(menu_items)
         end,
         separator = self.ui.paging and true,
     })
+    table.insert(hl_sub_item_table, {
+        text = _("Highlight lookup words by default"),
+        checked_func = function()
+            return G_reader_settings:isTrue("highlight_lookup_words")
+        end,
+        callback = function()
+            G_reader_settings:flipTrue("highlight_lookup_words")
+            logger.info("## readerhighlight highlight_lookup_words: ", G_reader_settings:isTrue("highlight_lookup_words"))
+        end,
+    })
     if self.document.is_pdf then
         table.insert(hl_sub_item_table, {
             text_func = function()
@@ -2018,7 +2028,6 @@ function ReaderHighlight:highlightFromHoldPos()
 end
 
 function ReaderHighlight:saveHighlight(extend_to_sentence)
-    logger.dbg("save highlight")
     if self.hold_pos and not self.selected_text then
         self:highlightFromHoldPos()
     end
@@ -2142,6 +2151,16 @@ function ReaderHighlight:editNote(index, is_new_note, text)
         end
     end
     self.ui.bookmark:setBookmarkNote(index, is_new_note, text, note_updated_callback)
+end
+
+--用于直接插入note,而不显示ui dialog
+function ReaderHighlight:editNoteWithoutUI(index, is_new_note, text)
+    local note_updated_callback = function()
+        if self.view.highlight.note_mark then -- refresh note marker
+            UIManager:setDirty(self.dialog, "ui")
+        end
+    end
+    self.ui.bookmark:setBookmarkNoteWithoutUI(index, is_new_note, text, note_updated_callback)
 end
 
 function ReaderHighlight:editHighlightStyle(index)

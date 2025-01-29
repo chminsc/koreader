@@ -310,12 +310,21 @@ function ReaderDictionary:addToMainMenu(menu_items)
                 separator = true,
             },
             {
+                text = _("Save dictionary lookup explanation to notes"),
+                checked_func = function()
+                    return G_reader_settings:isTrue("save_dict_lookup_to_notes") 
+                end,
+                callback = function()
+                    G_reader_settings:flipNilOrFalse("save_dict_lookup_to_notes")
+                end,
+            },
+            {
                 text = _("Enable dictionary lookup history"),
                 checked_func = function()
                     return not self.disable_lookup_history
                 end,
                 callback = function()
-                    self.disable_lookup_history = not self.disable_lookup_history
+                    self.disable_lookup_history = not self.disable_lookup_history 
                     G_reader_settings:saveSetting("disable_lookup_history", self.disable_lookup_history)
                 end,
             },
@@ -688,7 +697,7 @@ function ReaderDictionary:cleanSelection(text, is_sane)
     end
     -- crengine does now a much better job at finding word boundaries, but
     -- some cleanup is still needed for selection we get from other engines
-    -- (example: pdf selection "qu’autrefois," will be cleaned to "autrefois")
+    -- (example: pdf selection "qu'autrefois," will be cleaned to "autrefois")
     --
     -- Replace no-break space with regular space
     text = text:gsub("\u{00A0}", ' ')
@@ -697,7 +706,7 @@ function ReaderDictionary:cleanSelection(text, is_sane)
     text = text:gsub("%s+$", "")
     if not is_sane then
         -- Replace extended quote (included in the general puncturation range)
-        -- with plain ascii quote (for french words like "aujourd’hui")
+        -- with plain ascii quote (for french words like "aujourd'hui")
         text = text:gsub("\u{2019}", "'") -- Right single quotation mark
         -- Strip punctuation characters around selection
         text = util.stripPunctuation(text)

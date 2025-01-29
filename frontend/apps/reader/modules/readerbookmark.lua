@@ -1525,4 +1525,51 @@ function ReaderBookmark:doesBookmarkMatchTable(item)
     end
 end
 
+--用于直接插入note,而不显示ui
+function ReaderBookmark:setBookmarkNoteWithoutUI(item_or_index, is_new_note, new_note, caller_callback)
+    local item, index
+    if self.bookmark_menu then
+        item = item_or_index -- in item_table
+        index = self:getBookmarkItemIndex(item)
+    else -- from Highlight
+        index = item_or_index
+    end
+    local annotation = self.ui.annotation.annotations[index]
+    local type_before = item and item.type or self.getBookmarkType(annotation)
+
+    -- Handle the note text
+    local value = new_note
+    if value == "" then -- blank input deletes note
+        value = nil
+    end
+
+    -- Update annotation
+    annotation.note = value
+    self.ui.highlight:writePdfAnnotation("content", annotation, value)
+
+    -- Handle type changes and events
+    local type_after = self.getBookmarkType(annotation)
+    if type_before ~= type_after then
+        if type_before == "highlight" then
+            self.ui:handleEvent(Event:new("AnnotationsModified",
+                { annotation, nb_highlights_added = -1, nb_notes_added = 1 }))
+        else
+            self.ui:handleEvent(Event:new("AnnotationsModified",
+                { annotation, nb_highlights_added = 1, nb_notes_added = -1 }))
+        end
+    end
+
+    -- Update item if in bookmark menu
+    if item then
+        item.note = value
+        item.type = type_after
+        item.text = self:getBookmarkItemText(item)
+    end
+
+    -- Call callback if provided
+    if caller_callback then
+        caller_callback()
+    end
+end
+
 return ReaderBookmark

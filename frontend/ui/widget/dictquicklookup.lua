@@ -96,6 +96,11 @@ function DictQuickLookup:canSearch()
 end
 
 function DictQuickLookup:init()
+    -- 使用 isTrue，这样在设置不存在时会返回 false
+    self.save_highlight = G_reader_settings:isTrue("highlight_lookup_words")
+
+    logger.info("## dictquicklookup save_highlight: ", self.save_highlight)
+
     self.dict_font_size = G_reader_settings:readSetting("dict_font_size") or 20
     self.content_face = Font:getFace("cfont", self.dict_font_size)
     local font_size_alt = self.dict_font_size - 4
@@ -460,11 +465,11 @@ function DictQuickLookup:init()
                 },
                 {
                     id = "highlight",
-                    text = _("Highlight"),
+                    -- 根据 self.save_highlight 的值决定文本
+                    text = self.save_highlight and _("Unhighlight") or _("Highlight"),
                     enabled = not self:isDocless() and self.highlight ~= nil,
                     callback = function()
                         self.save_highlight = not self.save_highlight
-                        -- Just update, repaint and refresh *this* button
                         local this = self.button_table:getButtonById("highlight")
                         this:setText(self.save_highlight and _("Unhighlight") or _("Highlight"), this.width)
                         this:refresh()
@@ -1170,8 +1175,27 @@ function DictQuickLookup:onClose(no_clear)
     end
 
     if self.save_highlight then
-        self.highlight:saveHighlight()
-        self.highlight:clear()
+        -- 获取字典查询结果
+        local dict_result = ""
+        if self.results then
+            local result = self.results[self.dict_index] or self.results[1]
+            if result then
+                -- 将查询结果保存到notes中
+                -- 查询结果格式： 单词  查询结果（这里主要是为了在bookmark列表中看词，所以先把单词和查询结果分开）
+                dict_result = result.word .. ": " .. stripHtmlTags(result.definition)
+            end
+        end
+
+        -- If highlight exists, save highlight and notes
+        if self.highlight then
+            -- Save highlight
+            local index = self.highlight:saveHighlight(true)
+            -- Only save notes if both settings are enabled
+            if index and G_reader_settings:isTrue("highlight_lookup_words") and G_reader_settings:isTrue("save_dict_lookup_to_notes") then
+                self.highlight:editNoteWithoutUI(index, true, dict_result)
+            end
+            self.highlight:clear()
+        end
     else
         if self.highlight and not no_clear then
             -- delay unhighlight of selection, so we can see where we stopped when
@@ -1189,6 +1213,7 @@ function DictQuickLookup:onClose(no_clear)
 
     return true
 end
+
 
 function DictQuickLookup:onHoldClose(no_clear)
     -- Pop the windows FILO
@@ -1620,6 +1645,26 @@ function DictQuickLookup:clearDictionaryHighlight()
     elseif self.stw_widget then
         self.stw_widget.text_widget:scheduleClearHighlightAndRedraw()
     end
+end
+
+--当字典中显示的有html标签，去掉这些标签
+function stripHtmlTags(html_str)
+    if not html_str then return "" end
+
+    -- 移除所有HTML标签
+    local text = html_str:gsub("<[^>]+>", "")
+    -- 处理特殊HTML字符
+    text = text:gsub("&quot;", "\"")
+    text = text:gsub("&apos;", "'")
+    text = text:gsub("&lt;", "<")
+    text = text:gsub("&gt;", ">")
+    text = text:gsub("&amp;", "&")
+    -- 将多个空格和换行符规范化
+    text = text:gsub("%s+", " ")
+    -- 去除首尾空格
+    text = text:gsub("^%s*(.-)%s*$", "%1")
+
+    return text
 end
 
 return DictQuickLookup
