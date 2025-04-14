@@ -1,3 +1,5 @@
+# 使用：
+顶部设置 第二项，Hightlights, Highlight lookup words by default
 
 # build
 退出之后，要：
@@ -5,7 +7,9 @@ export PATH="$(brew --prefix)/opt/findutils/libexec/gnubin:$(brew --prefix)/opt/
 
 export MACOSX_DEPLOYMENT_TARGET=15.2 
 
-之后再build,run
+之后再:
+./kodev build
+./kodev run
 
 # sign
 
